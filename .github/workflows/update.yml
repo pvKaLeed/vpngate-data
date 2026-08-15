@@ -1,0 +1,34 @@
+name: Auto Update VPN Gate Data
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch-and-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Fetch Fresh VPN Gate CSV
+        run: |
+          curl -s -L "http://www.vpngate.net/api/iphone/" -o vpngate.csv
+          if grep -q "HostName" vpngate.csv; then
+            echo "Successfully updated VPN Gate Data."
+          else
+            echo "Failed to fetch valid CSV file."
+            exit 1
+          fi
+
+      - name: Push to Repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vpngate.csv
+          git commit -m "Auto-update VPN Gate CSV [skip ci]" || exit 0
+          git push
