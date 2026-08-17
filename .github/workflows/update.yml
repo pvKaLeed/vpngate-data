@@ -1,34 +1,37 @@
-name: Auto Update VPN Gate Data
+name: Auto Update PublicVPN Data
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 0 * * *' # ၁ ရက်လျှင် ၁ ကြိမ် အလိုအလျောက် Sync လုပ်မည်
   workflow_dispatch:
 
 jobs:
-  fetch-and-update:
+  scrape-and-update:
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Fetch Fresh VPN Gate CSV
-        run: |
-          curl -s -L "http://www.vpngate.net/api/iphone/" -o vpngate.csv
-          if grep -q "HostName" vpngate.csv; then
-            echo "Successfully updated VPN Gate Data."
-          else
-            echo "Failed to fetch valid CSV file."
-            exit 1
-          fi
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-      - name: Push to Repository
+      - name: Install Dependencies
+        run: |
+          pip install requests beautifulsoup4
+
+      - name: Run Scraper
+        run: |
+          python fetch_publicvpn.py
+
+      - name: Push CSV to Repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add vpngate.csv
-          git commit -m "Auto-update VPN Gate CSV [skip ci]" || exit 0
+          git commit -m "Auto-update PublicVPN CSV Data [skip ci]" || exit 0
           git push
